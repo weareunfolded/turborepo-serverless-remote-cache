@@ -52,7 +52,11 @@ function event(overrides: Partial<APIGatewayProxyEventV2> = {}): APIGatewayProxy
 function artifactEvent(
 	overrides: Partial<APIGatewayProxyEventV2> = {},
 ): APIGatewayProxyEventV2 {
-	return event({ pathParameters: { hash: HASH }, ...overrides });
+	return event({
+		pathParameters: { hash: HASH },
+		queryStringParameters: { teamId: "team_local" },
+		...overrides,
+	});
 }
 
 beforeEach(() => {
@@ -122,6 +126,11 @@ describe("headArtifact", () => {
 		expect(res.statusCode).toBe(400);
 	});
 
+	it("returns 400 when team param is missing", async () => {
+		const res = await headArtifact(artifactEvent({ queryStringParameters: {} }));
+		expect(res.statusCode).toBe(400);
+	});
+
 	it("returns 401 for bad token", async () => {
 		const res = await headArtifact(
 			artifactEvent({ headers: { authorization: "Bearer bad" } }),
@@ -169,13 +178,12 @@ describe("getArtifact", () => {
 		expect(res.statusCode).toBe(401);
 	});
 
+	it("returns 400 when team param is missing", async () => {
+		const res = await getArtifact(artifactEvent({ queryStringParameters: {} }));
+		expect(res.statusCode).toBe(400);
+	});
+
 	describe("team params middleware", () => {
-		it("does not add middleware when no team params", async () => {
-			mockSend.mockResolvedValueOnce({});
-			await getArtifact(artifactEvent());
-			const cmd = vi.mocked(GetObjectCommand).mock.results[0].value;
-			expect(cmd.middlewareStack.add).not.toHaveBeenCalled();
-		});
 
 		it("adds middleware with correct options when slug is present", async () => {
 			mockSend.mockResolvedValueOnce({});
@@ -304,6 +312,11 @@ describe("preflightArtifact", () => {
 				pathParameters: {},
 			}),
 		);
+		expect(res.statusCode).toBe(400);
+	});
+
+	it("returns 400 when team param is missing", async () => {
+		const res = await preflightArtifact(artifactEvent({ queryStringParameters: {} }));
 		expect(res.statusCode).toBe(400);
 	});
 

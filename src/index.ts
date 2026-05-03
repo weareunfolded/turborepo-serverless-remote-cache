@@ -39,6 +39,20 @@ function unauthorized(): APIGatewayProxyResultV2 {
 	return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
 }
 
+function hasTeamParam(event: APIGatewayProxyEventV2): boolean {
+	const qs = event.queryStringParameters ?? {};
+	return !!(qs.slug || qs.teamId);
+}
+
+function missingTeam(): APIGatewayProxyResultV2 {
+	return {
+		statusCode: 400,
+		body: JSON.stringify({
+			error: "Missing team parameter: set TURBO_TEAM in your Turbo configuration",
+		}),
+	};
+}
+
 function s3HttpStatus(err: unknown): number | undefined {
 	return (err as { $metadata?: { httpStatusCode?: number } })?.$metadata
 		?.httpStatusCode;
@@ -68,6 +82,7 @@ export async function headArtifact(
 	if (!verifyAuth(event)) return unauthorized();
 	const hash = event.pathParameters?.hash;
 	if (!hash) return { statusCode: 400, body: "" };
+	if (!hasTeamParam(event)) return missingTeam();
 
 	try {
 		await s3.send(
@@ -89,6 +104,7 @@ export async function getArtifact(
 	if (!verifyAuth(event)) return unauthorized();
 	const hash = event.pathParameters?.hash;
 	if (!hash) return { statusCode: 400, body: "missing hash" };
+	if (!hasTeamParam(event)) return missingTeam();
 
 	try {
 		await s3.send(
@@ -147,6 +163,7 @@ export async function preflightArtifact(
 	if (!verifyAuth(event)) return unauthorized();
 	const hash = event.pathParameters?.hash;
 	if (!hash) return { statusCode: 400, body: "" };
+	if (!hasTeamParam(event)) return missingTeam();
 
 	const requestMethod = (
 		event.headers["access-control-request-method"] ?? ""

@@ -29,8 +29,23 @@ Add these environment variables wherever you run `turbo` — locally and in CI:
 ```bash
 TURBO_API=https://<your-api-url>   # URL from deploy output, or your custom domain
 TURBO_TOKEN=<your-secret-token>    # value you set for TurboCacheToken
-TURBO_TEAM=team_local              # any non-empty string — required by Turbo
-TURBO_PREFLIGHT=1                  # required — read below before skipping this
+TURBO_TEAM=team_local              # required — read below
+TURBO_PREFLIGHT=1                  # required — read below
+```
+
+> **`TURBO_TEAM` is required and must not be omitted.**
+>
+> Turbo includes the team value as a query parameter on every artifact request (`slug` or `teamId`). This server validates that parameter is present and returns `400` if it is missing. Any non-empty string works — `team_local` is a reasonable default for self-hosted use.
+>
+> Set it as an environment variable (`TURBO_TEAM=team_local`) or in `turbo.json`:
+
+```json
+{
+  "remoteCache": {
+    "enabled": true,
+    "teamSlug": "team_local"
+  }
+}
 ```
 
 > **`TURBO_PREFLIGHT=1` is required and must not be omitted.**
@@ -85,6 +100,16 @@ AWS_REGION=us-east-1 pnpm exec sst deploy --stage production
 ```
 
 Artifacts are stored under `v8/artifacts/{hash}`. Presigned URLs expire after 1 hour.
+
+## Testing
+
+```bash
+pnpm test          # run all tests
+pnpm typecheck     # TypeScript type check
+pnpm lint          # Biome linter
+```
+
+The test suite in `src/index.test.ts` covers all five Lambda handlers using Vitest with mocked AWS SDK and SST dependencies — no AWS credentials required.
 
 ## Local development
 
